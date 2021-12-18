@@ -18,28 +18,59 @@ related_artists <- tuesdata$related_artists
 studio_album_tracks <- tuesdata$studio_album_tracks
 rm(tuesdata)
 
-studio_album_tracks %>% ggplot(aes(x = danceability, y = energy)) + geom_point()
-studio_album_tracks %>% ggplot(aes(x = danceability, y = loudness)) + geom_point()
-studio_album_tracks %>% ggplot(aes(x = danceability, y = speechiness)) + geom_point()
-studio_album_tracks %>% ggplot(aes(x = danceability, y = valence)) + geom_point()
+# Sentiment Analysis
 
-# Tokenizing lyrics
-lyrics_tokenized <- unnest_tokens(lyrics, word, line, drop = FALSE)
+forever <- lyrics %>% 
+  select(c(album_name, song_name, track_number, line)) %>%
+  filter(album_name == "Forever") %>%
+  group_by(album_name, song_name, track_number) %>%
+  mutate(
+    linenumber = row_number()
+    ) %>%
+  ungroup() %>%
+  unnest_tokens(word, line, drop = FALSE) %>%
+  anti_join(stop_words) %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(album_name, index = linenumber %/% 11, sentiment) %>%
+  spread(sentiment, n, fill = 0) %>%
+  mutate(sentiment = positive - negative)
 
-# Removing Stop Words
-tidy_lyrics <- lyrics_tokenized %>% anti_join(stop_words)
+spice <- lyrics %>% 
+  select(c(album_name, song_name, track_number, line)) %>%
+  filter(album_name == "Spice") %>%
+  group_by(album_name, song_name, track_number) %>%
+  mutate(
+    linenumber = row_number()
+  ) %>%
+  ungroup() %>%
+  unnest_tokens(word, line, drop = FALSE) %>%
+  anti_join(stop_words) %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(album_name, index = linenumber %/% 10, sentiment) %>%
+  spread(sentiment, n, fill = 0) %>%
+  mutate(sentiment = positive - negative)
 
-common_words <- tidy_lyrics %>% count(word, sort = TRUE)
-common_words %>% filter(n > 50) %>% mutate(word = reorder(word, n)) %>% ggplot(aes(x = word, y = n)) + geom_col() + xlab(NULL) + coord_flip()
+spiceworld <- lyrics %>% 
+  select(c(album_name, song_name, track_number, line)) %>%
+  filter(album_name == "Spiceworld") %>%
+  group_by(album_name, song_name, track_number) %>%
+  mutate(
+    linenumber = row_number()
+  ) %>%
+  ungroup() %>%
+  unnest_tokens(word, line, drop = FALSE) %>%
+  anti_join(stop_words) %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(album_name, index = linenumber %/% 10, sentiment) %>%
+  spread(sentiment, n, fill = 0) %>%
+  mutate(sentiment = positive - negative)
+all_albums <- rbind(forever, spice, spiceworld)
+all_albums %>% ggplot(aes(index, sentiment, fill = album_name)) + geom_col(show.legend = FALSE) + facet_wrap(~album_name, ncol = 1, scales = "free_x")
 
-nrcjoy <- get_sentiments("nrc") %>% filter(sentiment == "joy")
+# NRC
 
-tidy_lyrics %>%
-  inner_join(nrcjoy) %>%
-  count(word, sort = TRUE)
 
-nrcsadness <- get_sentiments("nrc") %>% filter(sentiment == "sadness")
+studio_album_tracks %>% 
+  ggplot(aes(x = track_number, y = loudness, color = album_name)) +
+  geom_line()
 
-tidy_lyrics %>%
-  inner_join(nrcsadness) %>%
-  count(word, sort = TRUE)
