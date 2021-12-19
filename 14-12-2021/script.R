@@ -16,6 +16,33 @@ library(tidytext)
 lyrics <- tuesdata$lyrics
 related_artists <- tuesdata$related_artists
 studio_album_tracks <- tuesdata$studio_album_tracks
+for_observable_plot <- studio_album_tracks %>%
+  select(-c(
+    artist_name, 
+    artist_id, 
+    album_id,
+    album_release_date,
+    key,
+    mode,
+    tempo,
+    track_id,
+    time_signature,
+    duration_ms,
+    key_name,
+    mode_name,
+    key_mode)
+    ) %>%
+  mutate(
+    album_year = str_c(album_name, " (", album_release_year, ")"),
+    danceability = danceability - 0.5,
+    energy = energy - 0.5,
+    speechiness = speechiness - 0.5,
+    acousticness = acousticness - 0.5,
+    instrumentalness = instrumentalness - 0.5,
+    liveness = liveness - 0.5,
+    valence = valence - 0.5
+  )
+write_csv(studio_album_tracks, "./studio_album_tracks.csv")
 rm(tuesdata)
 
 # Sentiment Analysis
